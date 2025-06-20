@@ -1,0 +1,12 @@
+1. Recursion:
+Recursion is a programming approach where a function calls itself to solve smaller subproblems. It's useful for problems with repetitive structure.
+
+2. Recursive Algorithm:
+In this program, we recursively multiply the current value by (1 + growthRate) for each year until years = 0.
+
+3. Time Complexity:
+- Recursive Method: O(n), where n = number of years
+- Iterative Method: O(n), but avoids repeated function calls
+
+4. Optimization:
+Recursive calls can lead to stack overflow and redundant calculations. The iterative approach is more efficient and avoids extra memory usage.
