@@ -1,0 +1,149 @@
+SET SERVEROUTPUT ON;
+
+
+-- 1. Drop Tables If They Exist
+
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE Accounts CASCADE CONSTRAINTS';
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END;
+/
+
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE Employees CASCADE CONSTRAINTS';
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END;
+/
+
+
+-- 2. Create Accounts Table
+
+CREATE TABLE Accounts (
+    AccountID NUMBER PRIMARY KEY,
+    CustomerName VARCHAR2(100),
+    Balance NUMBER,
+    AccountType VARCHAR2(20) -- e.g., 'Savings', 'Current'
+);
+
+
+-- 3. Create Employees Table
+
+CREATE TABLE Employees (
+    EmployeeID NUMBER PRIMARY KEY,
+    Name VARCHAR2(100),
+    Department VARCHAR2(50),
+    Salary NUMBER
+);
+
+
+-- 4. Insert Sample Data
+
+INSERT INTO Accounts VALUES (101, 'Alice', 10000, 'Savings');
+INSERT INTO Accounts VALUES (102, 'Bob', 5000, 'Savings');
+INSERT INTO Accounts VALUES (103, 'Charlie', 7000, 'Current');
+INSERT INTO Accounts VALUES (104, 'Daisy', 2000, 'Savings');
+
+INSERT INTO Employees VALUES (1, 'John', 'IT', 60000);
+INSERT INTO Employees VALUES (2, 'Jane', 'HR', 50000);
+INSERT INTO Employees VALUES (3, 'Dave', 'IT', 55000);
+
+COMMIT;
+
+
+-- 5. Scenario 1: ProcessMonthlyInterest
+
+CREATE OR REPLACE PROCEDURE ProcessMonthlyInterest IS
+BEGIN
+    UPDATE Accounts
+    SET Balance = Balance * 1.01
+    WHERE AccountType = 'Savings';
+
+    DBMS_OUTPUT.PUT_LINE('✅ Monthly interest processed for all savings accounts.');
+END;
+/
+
+-- Call the procedure
+BEGIN
+    ProcessMonthlyInterest;
+END;
+/
+
+
+-- 6. Scenario 2: UpdateEmployeeBonus
+
+CREATE OR REPLACE PROCEDURE UpdateEmployeeBonus(
+    dept IN VARCHAR2,
+    bonus_percent IN NUMBER
+) IS
+BEGIN
+    UPDATE Employees
+    SET Salary = Salary + (Salary * bonus_percent / 100)
+    WHERE Department = dept;
+
+    DBMS_OUTPUT.PUT_LINE('✅ Bonus of ' || bonus_percent || '% applied to department: ' || dept);
+END;
+/
+
+-- Call the procedure
+BEGIN
+    UpdateEmployeeBonus('IT', 10); -- Apply 10% bonus to IT department
+END;
+/
+
+
+-- 7. Scenario 3: TransferFunds
+
+CREATE OR REPLACE PROCEDURE TransferFunds(
+    from_acct IN NUMBER,
+    to_acct IN NUMBER,
+    amount IN NUMBER
+) IS
+    insufficient_balance EXCEPTION;
+BEGIN
+    -- Check source balance
+    DECLARE
+        source_balance NUMBER;
+    BEGIN
+        SELECT Balance INTO source_balance FROM Accounts WHERE AccountID = from_acct;
+
+        IF source_balance < amount THEN
+            RAISE insufficient_balance;
+        END IF;
+    END;
+
+    -- Deduct from source
+    UPDATE Accounts
+    SET Balance = Balance - amount
+    WHERE AccountID = from_acct;
+
+    -- Add to destination
+    UPDATE Accounts
+    SET Balance = Balance + amount
+    WHERE AccountID = to_acct;
+
+    DBMS_OUTPUT.PUT_LINE(' Transferred ' || amount || ' from Account ' || from_acct || ' to Account ' || to_acct);
+
+EXCEPTION
+    WHEN insufficient_balance THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Insufficient balance in account ' || from_acct);
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Error: One of the accounts does not exist.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE(' Unexpected error: ' || SQLERRM);
+END;
+/
+
+-- Call the procedure
+BEGIN
+    TransferFunds(101, 102, 2000); -- Transfer ₹2000 from Alice to Bob
+END;
+/
+
+
+-- 8. View Updated Data
+
+SELECT * FROM Accounts;
+SELECT * FROM Employees;
+
